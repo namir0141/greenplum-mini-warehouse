@@ -114,6 +114,27 @@ Port 5432 is published to the host, so GUI tools (DBeaver, DataGrip,
 pgAdmin) can connect to `localhost:5432` with user `gpadmin` / password
 `gpadmin`, database `demo`.
 
+### Browser query UI
+
+A tiny Flask app (`web/`) lets you run SQL from the browser — with
+sample-query shortcuts and CSV export. It runs in its own container and
+reaches Greenplum through the host's published port, so the `gp7`
+container stays untouched:
+
+```bash
+docker build -t gp7-web web/
+docker run -d --name gp7-web -p 8080:8080 \
+  -e GPDB_HOST=host.docker.internal -e GPDB_PORT=5432 \
+  -e GPDB_DATABASE=demo -e GPDB_USER=gpadmin -e GPDB_PASSWORD=gpadmin \
+  gp7-web
+# open http://localhost:8080
+```
+
+`host.docker.internal` resolves to the host from inside the container,
+where port 5432 is published (pg_hba accepts `md5` from any host). If
+you run the web app on a machine without Docker, point `GPDB_HOST` at
+your Greenplum host instead.
+
 ## Connection
 
 Set standard `PG*` env vars, or edit the `database:` section of
