@@ -1,0 +1,48 @@
+# ── Mini Data Warehouse on Greenplum: configuration ───────────────────
+# All paths are relative to the project root.
+# All names are schema-qualified: bronze.*, silver.*, gold.* (Level 5 layout).
+
+data:
+  root: data
+  raw:   data/raw        # generated CSV / JSONL source files
+  bronze: data/bronze    # consumed-file bookkeeping (tables live in the DB)
+  silver: data/silver    # quality report CSV
+  gold:   data/gold      # benchmark results + reports
+  incremental: data/incremental   # daily batches for the incremental pipeline
+  manifest: data/manifest.json     # tracks which files the incremental pipeline has seen
+
+# ── Greenplum connection ──────────────────────────────────────────────
+# Overridable with standard PG* environment variables:
+#   PGHOST, PGPORT, PGDATABASE, PGUSER, PGPASSWORD
+database:
+  host: localhost
+  port: 5432
+  dbname: postgres
+  user: gpadmin
+  password: ""
+
+# ── Dataset scale ─────────────────────────────────────────────────────
+# rows.orders controls everything else. Sizes:
+#   smoke   :      100,000  orders  (quick end-to-end check)
+#   small   :    1,000,000  orders
+#   medium  :   10,000,000  orders  (default; ~1-2 GB raw CSV)
+#   large   :  100,000,000  orders  (~10-20 GB raw CSV; needs a decent disk)
+scale:
+  profile: smoke            # smoke | small | medium | large
+  orders_per_customer: 6.0   # average orders per customer (drives customer count)
+  n_products: 50_000
+  n_countries: 45
+  n_channels: 5
+  n_payment_methods: 6
+  history_days: 730          # ~2 years of order history ending "today"
+  daily_order_volume: 70_000 # avg orders/day when profile=large (unused for fixed profiles)
+
+# ── Seed for reproducibility ──────────────────────────────────────────
+seed: 42
+
+# ── Benchmarks ────────────────────────────────────────────────────────
+benchmark:
+  queries: [monthly_revenue, customer_revenue, product_revenue, top_customers,
+            twelve_month_retention, large_join, large_aggregation]
+  warmup_runs: 1
+  timed_runs: 3
